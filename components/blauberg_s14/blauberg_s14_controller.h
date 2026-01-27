@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 
 namespace esphome {
 namespace blauberg_s14 {
@@ -35,6 +36,9 @@ class BlaubergS14Controller : public Component, public uart::UARTDevice {
   void setFilterReplacementStatusSensor(binary_sensor::BinarySensor *filterReplacementStatusSensor) {
     this->sensor_filterReplacementRequired_ = filterReplacementStatusSensor;
   }
+  void setResponseSensor(text_sensor::TextSensor *responseSensor) {
+    this->sensor_response_ = responseSensor;
+  }
 
   void setCurrentSpeed(int currentSpeed);
   void setCurrentDamper(bool currentDamper);
@@ -49,9 +53,14 @@ class BlaubergS14Controller : public Component, public uart::UARTDevice {
   binary_sensor::BinarySensor *sensor_damper_{nullptr};
   binary_sensor::BinarySensor *sensor_isDefrosting_{nullptr};
   binary_sensor::BinarySensor *sensor_filterReplacementRequired_{nullptr};
+  text_sensor::TextSensor *sensor_response_{nullptr};
 
  private:
-  uint32_t lastMillis = 0;
+  bool terminated = false;
+
+  bool lastResponseReceived = true;
+  uint32_t lastResponseReceivedAt = 0;
+
   uint32_t defrostingFromMillis = 0;
   bool isDefrosting = false;
   bool filterReplacementRequired = false;

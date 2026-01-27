@@ -1,10 +1,10 @@
 import esphome.codegen as cg
-from esphome.components import binary_sensor, uart
+from esphome.components import binary_sensor, text_sensor, uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["binary_sensor"]
+AUTO_LOAD = ["binary_sensor", "text_sensor"]
 
 blauberg_ns = cg.esphome_ns.namespace("blauberg_s14")
 BlaubergS14Controller = blauberg_ns.class_(
