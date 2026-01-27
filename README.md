@@ -10,19 +10,7 @@ With this library you can replace the S14 controller of your air recuperator (mi
 
 
 ## Connection
-
-```
- Wire from              LM2596                    D1 Mini          1000uf capacitor (optional)
- original controller
-
-+24V (Yellow)   --------> V in+  ---> V out+ ---> 5V
-RX (Green)      --------------------------------> GPIO3 (RX)
-TX (Brown)      --------------------------------> GPIO1 (TX)
-GND (White)     --------> V in- ----> V out- ---> GND  <---------- negative lead
-                                                  3.3V <---------- positive lead
-```
-I used DC/DC Buck Converter LM2596 to step down +24V to +5V and power up D1 mini.
-Optional, I connected 1000uF to 3.3V pin of D1 mini. It will make voltage of controller more stable, but it is not required.
+![](/images/blauberg_circuit.png)
 
 In case of using external power supply, please check first, that there is no voltage between air recuperator ground and power supply ground (ground loop). **Otherwise it will fry something.**
 
