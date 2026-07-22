@@ -5,6 +5,7 @@ from esphome.components import binary_sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
+    DEVICE_CLASS_CONNECTIVITY,
     DEVICE_CLASS_OPENING,
     DEVICE_CLASS_PROBLEM,
     DEVICE_CLASS_RUNNING,
@@ -15,6 +16,7 @@ DEPENDENCIES = ["blauberg_s14"]
 CONF_DAMPER_SENSOR = "damper_status"
 CONF_DEFROSTING_SENSOR = "defrosting_status"
 CONF_FILTER_REPLACEMENT_SENSOR = "filter_replacement_status"
+CONF_CONNECTION_SENSOR = "connection_status"
 
 blauberg_ns = cg.esphome_ns.namespace("blauberg_s14")
 
@@ -29,6 +31,9 @@ CONFIG_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_FILTER_REPLACEMENT_SENSOR): binary_sensor.binary_sensor_schema(
             device_class=DEVICE_CLASS_PROBLEM, icon="mdi:air-filter"
+        ),
+        cv.Optional(CONF_CONNECTION_SENSOR): binary_sensor.binary_sensor_schema(
+            device_class=DEVICE_CLASS_CONNECTIVITY, icon="mdi:lan-connect"
         ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -50,3 +55,7 @@ async def to_code(config):
             filter_replacement_status_sensor
         )
         cg.add(controller_.setFilterReplacementStatusSensor(sensor_var))
+
+    if connection_status_sensor := config.get(CONF_CONNECTION_SENSOR):
+        sensor_var = await binary_sensor.new_binary_sensor(connection_status_sensor)
+        cg.add(controller_.setConnectionStatusSensor(sensor_var))
