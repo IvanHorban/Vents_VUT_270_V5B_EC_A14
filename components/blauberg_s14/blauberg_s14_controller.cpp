@@ -10,15 +10,15 @@ namespace esphome {
                 case 0:
                     this->currentSpeed = BlaubergS14Controller::S14_SPEED_0;
                 break;
-                
+
                 case 1:
                     this->currentSpeed = BlaubergS14Controller::S14_SPEED_1;
                 break;
-                
+
                 case 2:
                     this->currentSpeed = BlaubergS14Controller::S14_SPEED_2;
                 break;
-                
+
                 case 3:
                     this->currentSpeed = BlaubergS14Controller::S14_SPEED_3;
                 break;
@@ -41,8 +41,8 @@ namespace esphome {
         }
 
         void BlaubergS14Controller::setResetFilter(bool resetFilter) {
-            this->currentResetFilter = resetFilter 
-                ? BlaubergS14Controller::S14_RESET_FILTER_ON 
+            this->currentResetFilter = resetFilter
+                ? BlaubergS14Controller::S14_RESET_FILTER_ON
                 : BlaubergS14Controller::S14_RESET_FILTER_OFF
             ;
 
@@ -65,6 +65,11 @@ namespace esphome {
             if (this->sensor_response_ != nullptr) {
                 this->sensor_response_->publish_state(std::to_string(BlaubergS14Controller::S14_RESPONSE_OK));
             }
+
+            // Стартуємо з "зв'язку немає", поки не отримаємо перший байт від установки.
+            if (this->sensor_connected_ != nullptr) {
+                this->sensor_connected_->publish_state(false);
+            }
         }
 
         void BlaubergS14Controller::loop() {
@@ -85,22 +90,11 @@ namespace esphome {
                 return;
             }
 
-            if (
-                this->lastResponseReceived
-                && now - this->lastResponseReceivedAt >= 90
-            ) {
-                this->lastResponseReceived = false;
-
-                write(this->currentSpeed | this->currentDamper | this->currentResetFilter);
-            }
-
-            int response = BlaubergS14Controller::S14_RESPONSE_OK;
-
+            // 1) Прочитати все, що надіслала установка.
             while (available()) {
-                this->lastResponseReceived = true;
-                this->lastResponseReceivedAt = millis();
+                this->lastResponseReceivedAt = now;
 
-                response = read();
+                int response = read();
 
                 if (this->currentResetFilter) {
                     this->setResetFilter(false);
@@ -122,7 +116,7 @@ namespace esphome {
                         case BlaubergS14Controller::S14_RESPONSE_OK:
                             break;
                         case BlaubergS14Controller::S14_RESPONSE_DEFROSTING_REQUIRED:
-                            this->defrostingFromMillis = millis();
+                            this->defrostingFromMillis = now;
                             this->isDefrosting = true;
 
                             if (this->sensor_isDefrosting_ != nullptr) {
@@ -141,6 +135,29 @@ namespace esphome {
                         break;
                     }
                 }
+            }
+
+            // 2) Оновити індикатор зв'язку: чи були байти протягом CONNECTION_TIMEOUT.
+            bool nowConnected = (this->lastResponseReceivedAt != 0)
+                && (now - this->lastResponseReceivedAt < BlaubergS14Controller::CONNECTION_TIMEOUT);
+
+            if (nowConnected != this->connected) {
+                this->connected = nowConnected;
+
+                ESP_LOGD(TAG, "BlaubergS14Controller connection: %s", this->connected ? "up" : "down");
+
+                if (this->sensor_connected_ != nullptr) {
+                    this->sensor_connected_->publish_state(this->connected);
+                }
+            }
+
+            // 3) Постійно шлемо команду з фіксованим інтервалом, незалежно від того,
+            //    чи відповіла установка. Так контролер не "зависає" при втраті зв'язку
+            //    і сам відновлюється, коли установка знову на лінії.
+            if (now - this->lastSentAt >= BlaubergS14Controller::SEND_INTERVAL) {
+                this->lastSentAt = now;
+
+                write(this->currentSpeed | this->currentDamper | this->currentResetFilter);
             }
         }
 
