@@ -26,6 +26,11 @@ class BlaubergS14Controller : public Component, public uart::UARTDevice {
 
   static const int DEFROSTING_TIME = 120000;
 
+  // Як часто шлемо команду в лінію (мс). Не залежить від відповіді установки.
+  static const uint32_t SEND_INTERVAL = 100;
+  // Якщо за цей час не прийшло жодного байта — вважаємо, що зв'язку немає (мс).
+  static const uint32_t CONNECTION_TIMEOUT = 500;
+
  public:
   void setDamperStatusSensor(binary_sensor::BinarySensor *damperStatusSensor) {
     this->sensor_damper_ = damperStatusSensor;
@@ -38,6 +43,9 @@ class BlaubergS14Controller : public Component, public uart::UARTDevice {
   }
   void setResponseSensor(text_sensor::TextSensor *responseSensor) {
     this->sensor_response_ = responseSensor;
+  }
+  void setConnectionStatusSensor(binary_sensor::BinarySensor *connectionStatusSensor) {
+    this->sensor_connected_ = connectionStatusSensor;
   }
 
   void setCurrentSpeed(int currentSpeed);
@@ -53,13 +61,18 @@ class BlaubergS14Controller : public Component, public uart::UARTDevice {
   binary_sensor::BinarySensor *sensor_damper_{nullptr};
   binary_sensor::BinarySensor *sensor_isDefrosting_{nullptr};
   binary_sensor::BinarySensor *sensor_filterReplacementRequired_{nullptr};
+  binary_sensor::BinarySensor *sensor_connected_{nullptr};
   text_sensor::TextSensor *sensor_response_{nullptr};
 
  private:
   bool terminated = false;
 
-  bool lastResponseReceived = true;
+  // Момент отримання останнього байта від установки (0 = ще нічого не приходило).
   uint32_t lastResponseReceivedAt = 0;
+  // Момент останньої відправки команди.
+  uint32_t lastSentAt = 0;
+  // Поточний стан зв'язку з установкою.
+  bool connected = false;
 
   uint32_t defrostingFromMillis = 0;
   bool isDefrosting = false;
